@@ -64,6 +64,10 @@ La popup affiche l'etat du script sur l'onglet : `Actif - mode ... - N intercept
 - `derniere animation` : nombre d'images affichees pendant le dernier zoom, ou la raison pour laquelle il n'a pas eu lieu (par exemple "Reduire les animations" actif dans macOS).
 - `Script absent de la page` : la page a ete ouverte avant l'installation ou le rechargement de l'extension, il faut la recharger.
 
+## Plein ecran total
+
+A l'entree, la transition est celle de macOS (la fenetre glisse vers son propre espace) : une page web ne peut pas la modifier. A la sortie, une fois la page revenue dans la fenetre, la video retourne a sa place avec la meme animation que le mode in-window.
+
 ## Limites connues
 
 - Le bouton plein ecran des controles natifs de `<video>` (sans lecteur JS) passe par le moteur, pas par `requestFullscreen`, donc il n'est pas intercepte.

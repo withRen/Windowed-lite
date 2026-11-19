@@ -339,6 +339,14 @@
     anim.finished.then(() => { diag.anim = `${label} ${n} images en ${Math.round(performance.now() - t0)} ms`; }, () => {});
   };
 
+  // Place de la video dans la page (coordonnees du document), pour savoir ou
+  // la renvoyer en sortant.
+  const rememberHome = (el) => {
+    const v = el.tagName === "VIDEO" ? el : el.querySelector?.("video");
+    const r = v?.getBoundingClientRect();
+    if (r?.width) home = { left: r.left + scrollX, top: r.top + scrollY, width: r.width };
+  };
+
   const contain = (video, fallback) => {
     const W = innerWidth, H = innerHeight;
     const ar = video.videoWidth && video.videoHeight ? video.videoWidth / video.videoHeight : fallback.width / fallback.height;
@@ -388,15 +396,18 @@
     }, () => {});
   };
 
-  const zoomOut = (el, video) => {
-    const from = video.getBoundingClientRect(); // la video en grand
-    if (!from.width || !from.height) return exitInWindow();
+  // "native" : on sort du plein ecran total (macOS a deja fait sa glissade et
+  // rendu la page a la fenetre) ; la capture part alors du plein onglet.
+  const zoomOut = (el, video, native = false) => {
+    const now = video.getBoundingClientRect();
+    const from = native ? contain(video, now) : now; // la video en grand
+    if (!from.width || !from.height) return native ? undefined : exitInWindow();
     const L = buildLayer(video, from);
     // Calque deja "plein" : fond flou et noir, capture en grand.
     L.blur.style.opacity = "1";
     L.dark.style.opacity = "1";
     L.onTop();
-    exitInWindow(); // sortie reelle sous le calque (avant d'enregistrer z : exitInWindow annule tout zoom en cours)
+    if (!native) exitInWindow(); // sortie reelle sous le calque (avant d'enregistrer z : exitInWindow annule tout zoom en cours)
     L.onTop();
     const z = (zooming = { el, ov: L.ov, onKey: null, cancelled: false, leaving: true });
 
@@ -528,7 +539,7 @@
     const run = (a) => {
       closeChooser();
       if (a === "i") enterInWindow(el);
-      else if (a === "f") original();
+      else if (a === "f") { rememberHome(el); original(); }
       else if (a === "p" && canPip) video.requestPictureInPicture().catch(() => {});
     };
     menu.addEventListener("click", (e) => {
@@ -561,7 +572,7 @@
     const mode = shift ? "ask" : cfg.mode;
     diag.intercepted++;
 
-    if (mode === "fullscreen") return original();
+    if (mode === "fullscreen") { rememberHome(el); return original(); }
 
     if (cfg.pip && !shift) {
       const v = el.tagName === "VIDEO" ? el : el.querySelector?.("video");
@@ -593,7 +604,23 @@
   }
 
   // Le menu ne doit jamais rester par-dessus un plein ecran natif.
-  const onNativeChange = () => { if (realFullscreenElement()) closeChooser(); };
+  // Plein ecran total : a l'entree, macOS fait sa glissade (rien a faire
+  // d'ici). A la sortie, la page revient dans la fenetre et la video
+  // retourne a sa place avec la meme animation que l'in-window.
+  let nativeEl = null;
+  const onNativeChange = () => {
+    const real = realFullscreenElement();
+    if (real) {
+      closeChooser(); // le menu ne doit jamais rester par-dessus
+      nativeEl = real;
+      return;
+    }
+    const el = nativeEl;
+    nativeEl = null;
+    if (!el || !isTop || !el.isConnected || !el.animate || active || zooming || reducedMotion()) return;
+    const video = mainVideo(el);
+    if (video) zoomOut(el, video, true);
+  };
   document.addEventListener("fullscreenchange", onNativeChange, true);
   document.addEventListener("webkitfullscreenchange", onNativeChange, true);
 
