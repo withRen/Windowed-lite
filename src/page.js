@@ -5,19 +5,6 @@
 // enregistre par sync.js pour les sites concernes (voir sync.js).
 (() => {
   "use strict";
-  // Si ce script tourne dans le monde isole de l'extension (le navigateur a
-  // ignore "world": "MAIN"), patcher Element.prototype ici n'aurait aucun
-  // effet sur la page. On se re-injecte alors dans la vraie page.
-  const ext = globalThis.browser ?? globalThis.chrome;
-  let isolated = false;
-  try { isolated = !!ext?.runtime?.id; } catch {}
-  if (isolated) {
-    const s = document.createElement("script");
-    s.src = ext.runtime.getURL("page.js");
-    s.onload = s.onerror = () => s.remove();
-    (document.head || document.documentElement).append(s);
-    return;
-  }
   if (window.__windowedLite) return;
   window.__windowedLite = true;
 
@@ -57,7 +44,7 @@
 
   // Diagnostic lu par la popup (scripting.executeScript), uniquement quand
   // on l'ouvre. Non enumerable pour rester discret.
-  const diag = { intercepted: 0, bypassed: 0, anim: "", get mode() { return cfg.mode; } };
+  const diag = { intercepted: 0, anim: "", get mode() { return cfg.mode; } };
   Object.defineProperty(window, "__wlDiag", { value: diag });
 
   const fire = (target) => {
@@ -568,10 +555,9 @@
   };
 
   // ---------- remplacement de requestFullscreen / exitFullscreen ----------
-  let allowNative = false; // vrai quand c'est nous qui lancons le plein ecran natif
   const request = function (...args) {
     const el = this;
-    const original = () => { allowNative = true; return nativeRequest.apply(el, args); };
+    const original = () => nativeRequest.apply(el, args);
     const mode = shift ? "ask" : cfg.mode;
     diag.intercepted++;
 
@@ -606,28 +592,8 @@
     if (typeof DP[n] === "function") DP[n] = exit;
   }
 
-  // ---------- filet de securite ----------
-  // Si la page entre quand meme en plein ecran natif sans passer par nous
-  // (fonction gardee de cote, autre API...), on le detecte et on le convertit
-  // en in-window ou en menu, selon le reglage.
-  let convertTo = null;
-  const onNativeChange = () => {
-    const real = realFullscreenElement();
-    if (real) closeChooser(); // le menu ne doit jamais rester par-dessus un plein ecran natif
-    if (real) {
-      if (convertTo || allowNative || cfg.mode === "fullscreen" || shift) return;
-      diag.bypassed++;
-      convertTo = real;
-      nativeExit?.call(document);
-    } else {
-      allowNative = false;
-      const el = convertTo;
-      convertTo = null;
-      if (!el || !el.isConnected) return;
-      if (cfg.mode === "in-window") enterInWindow(el);
-      else showChooser(el, () => { allowNative = true; return nativeRequest.call(el); });
-    }
-  };
+  // Le menu ne doit jamais rester par-dessus un plein ecran natif.
+  const onNativeChange = () => { if (realFullscreenElement()) closeChooser(); };
   document.addEventListener("fullscreenchange", onNativeChange, true);
   document.addEventListener("webkitfullscreenchange", onNativeChange, true);
 

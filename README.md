@@ -58,10 +58,10 @@ Bugs corriges au passage :
 
 ## Diagnostic
 
-La popup affiche l'etat du script sur l'onglet : `Actif - mode ... - N intercepte(s), M contourne(s)`.
+La popup affiche l'etat du script sur l'onglet : `Actif - mode ... - N intercepte(s) - derniere animation : ...`.
 
 - `intercepte(s)` : appels a `requestFullscreen` pris en charge.
-- `contourne(s)` : plein ecran natif lance sans passer par nous, detecte puis converti en in-window ou en menu.
+- `derniere animation` : nombre d'images affichees pendant le dernier zoom, ou la raison pour laquelle il n'a pas eu lieu (par exemple "Reduire les animations" actif dans macOS).
 - `Script absent de la page` : la page a ete ouverte avant l'installation ou le rechargement de l'extension, il faut la recharger.
 
 ## Limites connues

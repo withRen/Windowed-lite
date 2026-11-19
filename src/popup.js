@@ -58,12 +58,12 @@ async function showStatus() {
       world: "MAIN",
       func: () => {
         const d = window.__wlDiag;
-        return d ? { intercepted: d.intercepted, bypassed: d.bypassed, mode: d.mode, anim: d.anim } : null;
+        return d ? { intercepted: d.intercepted, mode: d.mode, anim: d.anim } : null;
       },
     });
     const d = res?.result;
     el.textContent = d
-      ? `Actif - mode ${d.mode} - ${d.intercepted} intercepte(s), ${d.bypassed} contourne(s)` +
+      ? `Actif - mode ${d.mode} - ${d.intercepted} intercepte(s)` +
         (d.anim ? ` - derniere animation : ${d.anim}` : "")
       : "Script absent de la page : recharge-la.";
   } catch {
