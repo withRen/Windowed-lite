@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; width: 250px; font: 13px -apple-system, system-ui, sans-serif; }
+  section { padding: 12px 14px; }
+  section + section { border-top: 1px solid color-mix(in srgb, currentColor 12%, transparent); }
+  h2 { margin: 0 0 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; opacity: .55; }
+  .host { font-weight: 600; margin-bottom: 8px; word-break: break-all; }
+  .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 2px; border-radius: 7px;
+         background: color-mix(in srgb, currentColor 9%, transparent); }
+  .seg button { all: unset; text-align: center; padding: 5px 0; border-radius: 5px; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: Canvas; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+  label { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
+  .muted { opacity: .55; font-size: 12px; margin-top: 8px; }
+  .muted.reset { cursor: pointer; text-decoration: underline; }
+</style>
+</head>
+<body>
+  <section id="site" hidden>
+    <h2>Ce site</h2>
+    <div class="host" id="host"></div>
+    <div class="seg" data-scope="site">
+      <button data-mode="ask">Demander</button>
+      <button data-mode="in-window">In-window</button>
+      <button data-mode="fullscreen">Natif</button>
+    </div>
+    <label>Picture-in-Picture d'abord <input type="checkbox" data-pip="site"></label>
+    <div class="muted reset" id="reset" hidden>Revenir au reglage par defaut</div>
+    <div class="muted" id="status"></div>
+  </section>
+  <section>
+    <h2>Par defaut</h2>
+    <div class="seg" data-scope="all">
+      <button data-mode="ask">Demander</button>
+      <button data-mode="in-window">In-window</button>
+      <button data-mode="fullscreen">Natif</button>
+    </div>
+    <label>Picture-in-Picture d'abord <input type="checkbox" data-pip="all"></label>
+    <div class="muted">Shift + plein ecran : toujours afficher le menu.</div>
+  </section>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

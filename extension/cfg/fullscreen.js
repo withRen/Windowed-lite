@@ -1,0 +1,1 @@
+(()=>{const e='{"mode":"fullscreen","pip":false}';window.__wlCfg=e;const n=()=>document.dispatchEvent(new CustomEvent("windowed-lite:config",{detail:e}));document.addEventListener("windowed-lite:ping",n),n()})();

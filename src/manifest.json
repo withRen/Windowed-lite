@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Windowed Lite",
+  "short_name": "Windowed Lite",
+  "version": "2.0.0",
+  "description": "Remplace le plein ecran par un mode in-window, ou te laisse choisir. Version legere de Windowed, pensee pour Search (WebKit).",
+  "permissions": ["storage", "scripting", "activeTab"],
+  "host_permissions": ["<all_urls>"],
+  "background": { "service_worker": "bg.js", "type": "module" },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": { "16": "icons/16.png", "32": "icons/32.png" }
+  },
+  "icons": { "16": "icons/16.png", "32": "icons/32.png", "64": "icons/64.png", "128": "icons/128.png" },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["page.js"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "world": "MAIN"
+    }
+  ],
+  "web_accessible_resources": [{ "resources": ["page.js"], "matches": ["<all_urls>"] }]
+}

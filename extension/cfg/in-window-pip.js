@@ -1,0 +1,1 @@
+(()=>{const n='{"mode":"in-window","pip":true}';window.__wlCfg=n;const e=()=>document.dispatchEvent(new CustomEvent("windowed-lite:config",{detail:n}));document.addEventListener("windowed-lite:ping",e),e()})();

@@ -1,0 +1,10 @@
+{
+  "name": "windowed-lite",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Version legere de Windowed pour Search (WebKit)",
+  "license": "ISC",
+  "scripts": { "build": "node build.mjs" },
+  "devDependencies": { "esbuild": "^0.25.0" }
+}
