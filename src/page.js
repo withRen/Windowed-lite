@@ -344,7 +344,7 @@
   const rememberHome = (el) => {
     const v = el.tagName === "VIDEO" ? el : el.querySelector?.("video");
     const r = v?.getBoundingClientRect();
-    if (r?.width) home = { left: r.left + scrollX, top: r.top + scrollY, width: r.width };
+    if (r?.width) home = { left: r.left + scrollX, top: r.top + scrollY, width: r.width, height: r.height };
   };
 
   const contain = (video, fallback) => {
@@ -359,7 +359,7 @@
     const from = video.getBoundingClientRect();
     if (!from.width || !from.height) return doEnter(el, true);
     const to = contain(video, from); // place finale, centree
-    home = { left: from.left + scrollX, top: from.top + scrollY, width: from.width };
+    home = { left: from.left + scrollX, top: from.top + scrollY, width: from.width, height: from.height };
     const L = buildLayer(video, to);
 
     // Echap pendant le zoom : on annule tout.
@@ -410,43 +410,74 @@
     if (!native) exitInWindow(); // sortie reelle sous le calque (avant d'enregistrer z : exitInWindow annule tout zoom en cours)
     L.onTop();
     const z = (zooming = { el, ov: L.ov, onKey: null, cancelled: false, leaving: true });
+    const done = () => { if (zooming === z) zooming = null; L.ov.remove(); };
+    const near = (r, t) => Math.abs(r.left - t.left) < 4 && Math.abs(r.top - t.top) < 4 && Math.abs(r.width - t.width) < 4;
 
-    // Attend que le lecteur ait repris sa place dans la page (500 ms max) :
-    // soit la video est revenue la ou elle etait avant l'entree, soit elle
-    // ne bouge plus depuis 6 images et n'est plus en grand.
+    // Plein ecran total : plus court, et deja entame au premier affichage,
+    // pour ne jamais montrer la video figee en plein onglet.
+    const duration = native ? 380 : SPRING_MS;
+    const head = native ? 70 : 0; // ms d'animation deja "jouees" au depart
+
+    // Le retrecissement demarre tout de suite vers la place memorisee avant
+    // l'entree, sans attendre le lecteur. Si celui-ci se remet ailleurs, la
+    // cible est corrigee en cours de route, au meme instant de l'animation.
+    let anims = [];
+    const start = (r, t) => {
+      for (const a of anims) a.cancel();
+      const opts = { duration, easing: spring(), fill: "forwards" };
+      anims = [
+        // Le noir part vite, le flou se dissipe ensuite : la page reapparait.
+        L.dark.animate([{ opacity: 1 }, { opacity: 0.25, offset: 0.45 }, { opacity: 0 }], { duration, easing: "ease-out", fill: "forwards" }),
+        L.blur.animate([{ opacity: 1 }, { opacity: 1, offset: 0.35 }, { opacity: 0 }], { duration, easing: "ease-in-out", fill: "forwards" }),
+        L.clip.animate([{ borderRadius: "0px" }, { borderRadius: `${RADIUS * (from.width / r.width)}px` }], opts),
+        L.box.animate([IDENTITY, place(from, r)], opts),
+      ];
+      for (const a of anims) a.currentTime = t;
+      const zoom = anims[3];
+      zoom.finished.then(() => {
+        if (z.cancelled || anims[3] !== zoom) return;
+        // La capture est pile sur la vraie video : on la retire en fondu court.
+        L.ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, easing: "ease-out" }).finished.then(done, done);
+      }, () => {});
+      return zoom;
+    };
+
+    let target = home && { left: home.left - scrollX, top: home.top - scrollY, width: home.width, height: home.height };
+    if (target) measure(start(target, head), native ? "sortie (plein ecran total) :" : "sortie :");
+
+    // Surveille la vraie video pendant l'animation (ou l'attend, 500 ms max,
+    // s'il n'y a pas de place memorisee).
     const t0 = performance.now();
     let last = null, stable = 0;
-    const near = (r, x, y, w2) => Math.abs(r.left - x) < 4 && Math.abs(r.top - y) < 4 && Math.abs(r.width - w2) < 4;
-    const settle = () => {
+    const watch = () => {
       if (z.cancelled) return;
       const v = mainVideo(el) ?? video;
       const r = v.isConnected ? v.getBoundingClientRect() : null;
-      stable = r && last && near(r, last.left, last.top, last.width) ? stable + 1 : 0;
+      stable = r && last && near(r, last) ? stable + 1 : 0;
       last = r;
-      const atHome = r && home && near(r, home.left - scrollX, home.top - scrollY, home.width);
-      const big = r && (near(r, from.left, from.top, from.width) || Math.abs(r.width - innerWidth) < 4);
-      if (!(atHome || (stable >= 6 && !big)) && performance.now() - t0 < 500) return requestAnimationFrame(settle);
-      const visible = r && r.width > 0 && r.bottom > 0 && r.top < innerHeight;
-      const done = () => { if (zooming === z) zooming = null; L.ov.remove(); };
-      if (!visible) {
-        L.ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, easing: "ease-out" }).finished.then(done, done);
+      const big = r && (near(r, from) || Math.abs(r.width - innerWidth) < 4);
+      const settled = r && r.width > 0 && !big && (stable >= 3 || (target && near(r, target)));
+      const elapsed = performance.now() - t0;
+      if (!settled) {
+        if (elapsed < 500) return requestAnimationFrame(watch);
+        if (!target) L.ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, easing: "ease-out" }).finished.then(done, done);
         return;
       }
-      const ease = spring();
-      const opts = { duration: SPRING_MS, easing: ease, fill: "forwards" };
-      // Le noir part vite, le flou se dissipe ensuite : la page reapparait.
-      L.dark.animate([{ opacity: 1 }, { opacity: 0.25, offset: 0.45 }, { opacity: 0 }], { duration: SPRING_MS, easing: "ease-out", fill: "forwards" });
-      L.blur.animate([{ opacity: 1 }, { opacity: 1, offset: 0.35 }, { opacity: 0 }], { duration: SPRING_MS, easing: "ease-in-out", fill: "forwards" });
-      L.clip.animate([{ borderRadius: "0px" }, { borderRadius: `${RADIUS * (from.width / r.width)}px` }], opts);
-      const zoom = L.box.animate([IDENTITY, place(from, r)], opts);
-      measure(zoom, "sortie :");
-      // A la fin, la capture est pile sur la vraie video : on la retire en fondu court.
-      zoom.finished.then(() => {
-        if (z.cancelled) return;
-        L.ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, easing: "ease-out" }).finished.then(done, done);
-      }, () => {});
+      const visible = r.bottom > 0 && r.top < innerHeight;
+      if (!target) {
+        // Pas de place memorisee : on part maintenant vers la place reelle.
+        if (!visible) return L.ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, easing: "ease-out" }).finished.then(done, done);
+        target = r;
+        measure(start(r, head), "sortie :");
+        return;
+      }
+      // Le lecteur s'est pose ailleurs que prevu : on recale la cible.
+      if (!near(r, target) && visible) {
+        const t = anims[3]?.currentTime ?? 0;
+        if (t < duration) { target = r; start(r, t); }
+      }
     };
-    requestAnimationFrame(settle);
+    requestAnimationFrame(watch);
   };
 
   const enterInWindow = (el) => {

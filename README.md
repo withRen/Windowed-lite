@@ -66,7 +66,7 @@ La popup affiche l'etat du script sur l'onglet : `Actif - mode ... - N intercept
 
 ## Plein ecran total
 
-A l'entree, la transition est celle de macOS (la fenetre glisse vers son propre espace) : une page web ne peut pas la modifier. A la sortie, une fois la page revenue dans la fenetre, la video retourne a sa place avec la meme animation que le mode in-window.
+A l'entree, la transition est celle de macOS (la fenetre glisse vers son propre espace) : une page web ne peut pas la modifier. A la sortie, des que la page revient dans la fenetre, la video retourne a sa place avec la meme animation que le mode in-window, en plus court (380 ms) et deja entamee au premier affichage, pour ne jamais montrer la video en plein onglet.
 
 ## Limites connues
 
